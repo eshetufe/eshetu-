@@ -1,253 +1,92 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Command Center | Professional Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Elite Command Center</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --hemen: #0ea5e9; --ablakat: #f43f5e; --primary: #6366f1;
-            --gold: #d4af37; --success: #10b981; --dark: #0f172a;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Outfit', sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; }
-
-        /* Login Overlay */
-        #loginOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--dark); display: flex; align-items: center; justify-content: center; z-index: 10000;
-        }
-        .login-box {
-            background: white; padding: 40px; border-radius: 30px; text-align: center; width: 350px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-        }
-
-        /* Layout */
-        .wrapper { display: none; }
-        .sidebar { width: 300px; background: var(--dark); padding: 30px; color: white; position: fixed; height: 100vh; }
-        .main { margin-left: 300px; padding: 40px; width: calc(100% - 300px); }
-
-        /* Cards */
-        .card { background: white; border-radius: 25px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 25px; }
-        .task-item { display: flex; align-items: center; padding: 12px; margin: 8px 0; background: #f8fafc; border-radius: 12px; cursor: pointer; border: 1px solid #f1f5f9; transition: 0.2s; }
-        .task-item.checked { background: #ecfdf5; border-color: var(--success); }
-        .check-box { width: 22px; height: 22px; border: 2px solid #cbd5e1; border-radius: 7px; margin-right: 12px; }
-        .checked .check-box { background: var(--success); border-color: var(--success); position: relative; }
-        .checked .check-box::after { content: '✓'; color: white; position: absolute; left: 5px; top: -1px; }
-
-        /* Buttons */
-        .btn { border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 0.8rem; transition: 0.3s; }
-        .btn-p { background: var(--primary); color: white; }
-        .btn-export { background: var(--success); color: white; }
-        .btn-disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
-
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 15px; overflow: hidden; }
-        th { text-align: left; padding: 15px; font-size: 0.75rem; color: #64748b; background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-weight: 600; }
-        .current-day { background: #eef2ff; border-left: 3px solid var(--primary); }
-
-        textarea { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; font-family: inherit; margin-top: 10px; resize: none; }
+        :root { --primary: #4f46e5; --bg: #0f172a; --card: #ffffff; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; color: white; }
+        .container { max-width: 500px; margin: auto; }
+        .login-screen, .dashboard { display: none; }
+        .active { display: block; }
+        .card { background: var(--card); color: #1e293b; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
+        h2 { color: var(--primary); margin-top: 0; text-align: center; }
+        .task-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+        input[type="number"] { width: 60px; padding: 8px; border-radius: 8px; border: 1px solid #ccc; text-align: center; }
+        button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .export-btn { background: #10b981; margin-top: 20px; }
+        input[type="password"] { width: 100%; padding: 15px; border-radius: 10px; border: none; margin: 15px 0; font-size: 24px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="loginOverlay">
-        <div class="login-box">
-            <h2 style="color:var(--dark)">Elite Parental Portal</h2>
-            <p style="margin: 10px 0; color: #64748b;">Security PIN Required</p>
-            <input type="password" id="pinIn" style="width:100%; padding:15px; margin:20px 0; border-radius:10px; border:1px solid #ddd; text-align:center; font-size: 1.5rem;" placeholder="****">
-            <button class="btn btn-p" style="width:100%" onclick="login()">Enter Dashboard</button>
+<div class="container">
+    <div id="login-screen" class="login-screen active">
+        <div class="card" style="text-align: center;">
+            <h2>Elite Portal</h2>
+            <p style="color: #64748b;">Enter PIN to manage tasks</p>
+            <input type="password" id="pin" inputmode="numeric" placeholder="••••">
+            <button onclick="login()">Login</button>
         </div>
     </div>
 
-    <div class="wrapper" id="app">
-        <aside class="sidebar">
-            <h2 style="color:var(--primary)">ELITE HUB</h2>
-            <div style="margin-top:40px;">
-                <h4 style="color:var(--gold)">🏆 HALL OF FAME</h4>
-                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; margin-top:15px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>Hemen</span> <span id="hStars">0 ★</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span>Ablakat</span> <span id="aStars">0 ★</span></div>
-                </div>
-            </div>
-            <button class="btn" style="background:#fee2e2; color:#ef4444; width:100%; margin-top:80px;" onclick="resetData()">Security Reset</button>
-        </aside>
-
-        <main class="main">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-                <div>
-                    <h1 style="letter-spacing: -1px;">Command Center</h1>
-                    <p style="color: #64748b;" id="liveDate"></p>
-                </div>
-                <button class="btn btn-export" onclick="exportData()">Export Monthly Excel</button>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px; margin-bottom:30px;">
-                <div class="card" id="hCard">
-                    <h3 style="color:var(--hemen)">Hemen (Grade 6)</h3>
-                    <div class="task-list" id="hTasks"></div>
-                    <div style="margin-top:20px; font-weight:800; font-size:1.2rem;">Today's Score: <span id="hScore">0</span>%</div>
-                    <button class="btn btn-disabled" id="hCertBtn" style="margin-top:15px; width:100%" onclick="getCert('Hemen', 'hScore')">Certificate (90%+ Required)</button>
-                </div>
-
-                <div class="card" id="aCard">
-                    <h3 style="color:var(--ablakat)">Ablakat (LKG)</h3>
-                    <div class="task-list" id="aTasks"></div>
-                    <div style="margin-top:20px; font-weight:800; font-size:1.2rem;">Today's Score: <span id="aScore">0</span>%</div>
-                    <button class="btn btn-disabled" id="aCertBtn" style="margin-top:15px; width:100%" onclick="getCert('Ablakat', 'aScore')">Certificate (90%+ Required)</button>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Weekly Performance Scorecard</h3>
-                <table id="weekTable">
-                    <thead>
-                        <tr><th>Child</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th><th>AVG</th></tr>
-                    </thead>
-                    <tbody id="weekBody"></tbody>
-                </table>
-            </div>
-
-            <div class="card">
-                <h3>Monthly Milestone Tracker</h3>
-                <table id="monthTable">
-                    <thead>
-                        <tr><th>Time Period</th><th>Hemen Result</th><th>Ablakat Result</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Week 1</td><td id="wh1">--</td><td id="wa1">--</td><td>Completed</td></tr>
-                        <tr><td>Week 2 (Active)</td><td id="wh2">0%</td><td id="wa2">0%</td><td>Live Tracking</td></tr>
-                        <tr><td>Week 3</td><td>--</td><td>--</td><td>Scheduled</td></tr>
-                        <tr><td>Week 4</td><td>--</td><td>--</td><td>Scheduled</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="card">
-                <h3>Parental Observations & Comments</h3>
-                <textarea id="noteIn" rows="2" placeholder="Write today's feedback here..."></textarea>
-                <button class="btn btn-p" style="margin-top:10px;" onclick="addNote()">Save Comment</button>
-                <div id="noteList" style="margin-top:20px;"></div>
-            </div>
-        </main>
-    </div>
-
-    <script>
-        const PIN = "4203";
-        const hList = ["Wake up 6:30 AM", "Personal Hygiene", "G6 School Readiness", "Breakfast Complete", "Time managemenet", "prying", "Stady properly", "Doing homework on time", "Apologize", "Expressing Ideas freely"];
-        const aList = ["Happy Wake up", "Wash & Teeth", "School Bag Ready", "Morning Milk/Food", "Breakfast Complete", "prying", "Apologize", "Expressing Ideas freely"];
+    <div id="dashboard" class="dashboard">
+        <h2>Daily Activity Score</h2>
         
-        let state = JSON.parse(localStorage.getItem('elite_v6_parent')) || {
-            hStars: 0, aStars: 0, notes: [], 
-            hScores: [0,0,0,0,0,0,0], aScores: [0,0,0,0,0,0,0]
-        };
+        <div class="card">
+            <h3 style="margin-top:0">Hemen's Tasks</h3>
+            <div class="task-row"><span>Morning Routine</span> <input type="number" class="score" data-name="Hemen" data-task="Morning"></div>
+            <div class="task-row"><span>School/Study</span> <input type="number" class="score" data-name="Hemen" data-task="Study"></div>
+            <div class="task-row"><span>Daily Chores</span> <input type="number" class="score" data-name="Hemen" data-task="Chores"></div>
+        </div>
 
-        const dayIdx = (new Date().getDay() + 6) % 7; // Monday = 0
+        <div class="card">
+            <h3 style="margin-top:0">Ablakat's Tasks</h3>
+            <div class="task-row"><span>Morning Routine</span> <input type="number" class="score" data-name="Ablakat" data-task="Morning"></div>
+            <div class="task-row"><span>School/Study</span> <input type="number" class="score" data-name="Ablakat" data-task="Study"></div>
+            <div class="task-row"><span>Daily Chores</span> <input type="number" class="score" data-name="Ablakat" data-task="Chores"></div>
+        </div>
 
-        function login() {
-            if(document.getElementById('pinIn').value === PIN) {
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-                init();
-            } else { alert("Incorrect PIN. Access Denied."); }
-        }
+        <button onclick="saveData()">Save Today's Scores</button>
+        <button class="export-btn" onclick="exportExcel()">Download Result File (Excel)</button>
+    </div>
+</div>
 
-        function init() {
-            document.getElementById('liveDate').innerText = new Date().toDateString();
-            const hCont = document.getElementById('hTasks');
-            const aCont = document.getElementById('aTasks');
-            hCont.innerHTML = ''; aCont.innerHTML = '';
-            hList.forEach(t => hCont.innerHTML += `<div class="task-item" onclick="sync('h', this)"><div class="check-box"></div>${t}</div>`);
-            aList.forEach(t => aCont.innerHTML += `<div class="task-item" onclick="sync('a', this)"><div class="check-box"></div>${t}</div>`);
-            updateUI();
-        }
+<script>
+    let db = JSON.parse(localStorage.getItem('elite_data')) || [];
 
-        function sync(p, el) {
-            el.classList.toggle('checked');
-            const card = document.getElementById(p === 'h' ? 'hCard' : 'aCard');
-            const total = p === 'h' ? hList.length : aList.length;
-            const score = Math.round((card.querySelectorAll('.task-item.checked').length / total) * 100);
-            
-            state[p + 'Scores'][dayIdx] = score;
-            if(score === 100) { confetti({ particleCount: 150 }); state[p + 'Stars']++; }
-            
-            const btn = document.getElementById(p + 'CertBtn');
-            if(score >= 90) { 
-                btn.className = "btn btn-p"; 
-                btn.innerText = "Award Official Certificate"; 
-            } else { 
-                btn.className = "btn btn-disabled"; 
-                btn.innerText = "Certificate (90%+ Required)"; 
-            }
+    function login() {
+        if(document.getElementById('pin').value === '4203') {
+            document.getElementById('login-screen').classList.remove('active');
+            document.getElementById('dashboard').classList.add('active');
+        } else { alert('Wrong PIN'); }
+    }
 
-            save(); updateUI();
-        }
+    function saveData() {
+        const inputs = document.querySelectorAll('.score');
+        const date = new Date().toLocaleDateString();
+        inputs.forEach(input => {
+            db.push({
+                Date: date,
+                Name: input.dataset.name,
+                Task: input.dataset.task,
+                Score: input.value || 0
+            });
+        });
+        localStorage.setItem('elite_data', JSON.stringify(db));
+        alert('Data Saved Locally!');
+    }
 
-        function save() { localStorage.setItem('elite_v6_parent', JSON.stringify(state)); }
+    function exportExcel() {
+        if(db.length === 0) return alert('No data to export!');
+        const ws = XLSX.utils.json_to_sheet(db);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Scores");
+        XLSX.writeFile(wb, "Elite_Center_Result.xlsx");
+    }
+</script>
 
-        function updateUI() {
-            document.getElementById('hScore').innerText = state.hScores[dayIdx];
-            document.getElementById('aScore').innerText = state.aScores[dayIdx];
-            document.getElementById('hStars').innerText = state.hStars + " ★";
-            document.getElementById('aStars').innerText = state.aStars + " ★";
-            document.getElementById('wh2').innerText = state.hScores[dayIdx] + "%";
-            document.getElementById('wa2').innerText = state.aScores[dayIdx] + "%";
-
-            document.getElementById('weekBody').innerHTML = `
-                <tr><td>Hemen</td>${state.hScores.map((s,i) => `<td class="${i===dayIdx?'current-day':''}">${s}%</td>`).join('')}<td>${Math.round(state.hScores.reduce((a,b)=>a+b)/7)}%</td></tr>
-                <tr><td>Ablakat</td>${state.aScores.map((s,i) => `<td class="${i===dayIdx?'current-day':''}">${s}%</td>`).join('')}<td>${Math.round(state.aScores.reduce((a,b)=>a+b)/7)}%</td></tr>`;
-            
-            document.getElementById('noteList').innerHTML = state.notes.map(n => `<div style="padding:15px; border-left:4px solid var(--primary); background:#f8fafc; margin-bottom:10px; border-radius:10px;"><b>${n.d}:</b> ${n.t}</div>`).join('');
-        }
-
-        async function getCert(name, scoreId) {
-            const score = document.getElementById(scoreId).innerText;
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape' });
-            
-            doc.setDrawColor(212, 175, 55); doc.setLineWidth(6); doc.rect(10, 10, 277, 190);
-            doc.setLineWidth(1); doc.rect(14, 14, 269, 182);
-
-            doc.setFont("playfair", "bold"); doc.setTextColor(30, 41, 59);
-            doc.setFontSize(40); doc.text("OFFICIAL AWARD OF EXCELLENCE", 148, 60, {align: "center"});
-            
-            doc.setFontSize(22); doc.text("This recognition is proudly presented to", 148, 90, {align: "center"});
-            doc.setFontSize(60); doc.setTextColor(99, 102, 241); doc.text(name.toUpperCase(), 148, 130, {align: "center"});
-            
-            doc.setFontSize(24); doc.setTextColor(30, 41, 59);
-            doc.text(`For achieving a Daily Performance Score of ${score}%`, 148, 160, {align: "center"});
-            
-            doc.setFont("dancing script", "bold"); doc.setFontSize(22); doc.text("Eshetu Fekene", 230, 185, {align: "center"});
-            doc.setFont("outfit", "bold"); doc.setFontSize(10); doc.text("Issuing Authority: Parent Signature", 230, 192, {align: "center"});
-            
-            doc.save(`${name}_Excellence_Award.pdf`);
-        }
-
-        function addNote() {
-            const t = document.getElementById('noteIn').value;
-            if(!t) return;
-            state.notes.unshift({d: new Date().toLocaleDateString(), t: t});
-            save(); updateUI();
-            document.getElementById('noteIn').value = '';
-        }
-
-        function exportData() {
-            const wb = XLSX.utils.book_new();
-            const ws1 = XLSX.utils.table_to_sheet(document.getElementById('weekTable'));
-            const ws2 = XLSX.utils.table_to_sheet(document.getElementById('monthTable'));
-            XLSX.utils.book_append_sheet(wb, ws1, "Weekly Performance");
-            XLSX.utils.book_append_sheet(wb, ws2, "Monthly Milestones");
-            XLSX.writeFile(wb, "Elite_Command_Center_Record.xlsx");
-        }
-
-        function resetData() {
-            if(prompt("Enter Security PIN to clear all data:") === PIN) { localStorage.clear(); location.reload(); }
-        }
-    </script>
 </body>
 </html>
